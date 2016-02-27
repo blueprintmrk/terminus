@@ -1,0 +1,19 @@
+{
+    "require": {
+        "guzzlehttp/guzzle": "^6.1",
+        "symfony/console": "~2.2|^3.0",
+        "symfony/finder": "^3.0",
+        "twig/twig": "^1.24",
+        "vlucas/phpdotenv": "^2.2",
+        "symfony/class-loader": "^3.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "~4.8",
+        "phpunit/phpcov": "~2.0",
+        "php-vcr/php-vcr": "^1.2",
+        "php-vcr/phpunit-testlistener-vcr": "^1.1",
+        "satooshi/php-coveralls": "^1.0",
+        "sebastian/phpcpd": "^2.0",
+        "squizlabs/php_codesniffer": "^2.5"
+    }
+}
