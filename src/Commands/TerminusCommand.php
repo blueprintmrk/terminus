@@ -33,7 +33,7 @@ abstract class TerminusCommand extends Command {
   protected function execute(InputInterface $input, OutputInterface $output) {
     $this->input  = $input;
     $this->output = $output;
-    $this->run($input->getArguments(), $input->getOptions());
+    $this->do($input->getArguments(), $input->getOptions());
   }
 
 }

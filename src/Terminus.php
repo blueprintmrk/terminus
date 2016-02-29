@@ -6,6 +6,7 @@ require __DIR__ . '/../vendor/autoload.php';
 
 use Symfony\Component\ClassLoader\Psr4ClassLoader;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Yaml\Yaml;
 
 $terminus = new Terminus;
@@ -32,6 +33,7 @@ class Terminus {
     $this->loadConstants();
     $this->application = new Application('Terminus', TERMINUS_VERSION);
     $this->loadCommands();
+    $this->addGlobalParams();
   }
 
   /**
@@ -41,6 +43,25 @@ class Terminus {
    */
   public function __invoke () {
     $this->application->run();
+  }
+
+  /**
+   * Adds Terminus global parameters to the application
+   *
+   * @return void
+   */
+  private function addGlobalParams() {
+    $definition = $this->application->getDefinition();
+    $definition->addOptions(
+      [
+        new InputOption(
+          '--yes',
+          '-y',
+          InputOption::VALUE_NONE,
+          'Answer yes to all prompts'
+        ),
+      ]
+    );
   }
 
   /**
