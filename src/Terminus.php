@@ -71,7 +71,7 @@ class Terminus {
    * @return void
    */
   private function loadCommandDirectory($directory) {
-    $iterator = new \DirectoryIterator($directory);
+    $iterator = new DirectoryIterator($directory);
     foreach ($iterator as $file) {
       if (!$file->isDot()) {
         if ($file->isDir()) {
