@@ -23,7 +23,7 @@ done
 cd "$ORIGDIR"
 
 # Build the path to the root PHP file
-SCRIPT_PATH="$(dirname "$SELF_PATH")/../src/Terminus.php"
+SCRIPT_PATH="$(dirname "$SELF_PATH")/../src/run.php"
 
 case $(uname -a) in
   CYGWIN*)
