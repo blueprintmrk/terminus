@@ -4,10 +4,8 @@
 namespace Terminus\Commands\Auth;
 
 use Terminus\Commands\TerminusCommand;
+use Terminus\Models\Auth;
 use Symfony\Component\Console\Input\InputArgument;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
-use Symfony\Component\Console\Output\OutputInterface;
 use Terminus\Session;
 
 /**
@@ -37,48 +35,77 @@ class LoginCommand extends TerminusCommand {
   }
 
   public function do($args, $assoc_args) {
-    if (!empty($args)) {
-      $email = array_shift($args);
+    $auth = new Auth();
+    if (isset($args['email'])) {
+      $email = $args['email'];
     }
     if (isset($assoc_args['machine-token'])
-      && ($assoc_args['machine-token'] !== true)
+        && ($assoc_args['machine-token'] !== true)
     ) {
       // Try to log in using a machine token, if provided.
       $token_data = ['token' => $assoc_args['machine-token']];
-      $this->auth->logInViaMachineToken($token_data);
+      $auth->logInViaMachineToken($token_data);
+      $this->log()->info('Logging in via machine token');
     } elseif (isset($email) && !isset($assoc_args['password'])
-      && $this->auth->tokenExistsForEmail($email)
+              && $auth->tokenExistsForEmail($email)
     ) {
       // Try to log in using a machine token, if the account email was provided.
-      $this->auth->logInViaMachineToken(compact('email'));
+      $this->log()->info(
+        'Found a machine token for "{email}".',
+        ['email' => $args['email'],]
+      );
+      $auth->logInViaMachineToken(compact('email'));
+      $this->log()->info('Logging in via machine token');
     } elseif (empty($args) && isset($_SERVER['TERMINUS_MACHINE_TOKEN'])) {
       // Try to log in using a machine token, if it's in the $_SERVER.
       $token_data = ['token' => $_SERVER['TERMINUS_MACHINE_TOKEN']];
-      $this->auth->logInViaMachineToken($token_data);
+      $auth->logInViaMachineToken($token_data);
+      $this->log()->info('Logging in via machine token');
     } elseif (isset($_SERVER['TERMINUS_USER'])
-      && !isset($assoc_args['password'])
-      && $this->auth->tokenExistsForEmail($_SERVER['TERMINUS_USER'])
+              && !isset($assoc_args['password'])
+              && $auth->tokenExistsForEmail($_SERVER['TERMINUS_USER'])
     ) {
       // Try to log in using a machine token, if $_SERVER provides account email.
-      $this->auth->logInViaMachineToken(['email' => $_SERVER['TERMINUS_USER']]);
+      $this->log()->info(
+        'Found a machine token for "{email}".',
+        ['email' => $_SERVER['TERMINUS_USER'],]
+      );
+      $auth->logInViaMachineToken(['email' => $_SERVER['TERMINUS_USER']]);
+      $this->log()->info('Logging in via machine token');
     } elseif (!isset($email)
-      && $only_token = $this->auth->getOnlySavedToken()
+              && $only_token = $auth->getOnlySavedToken()
     ) {
       // Try to log in using a machine token, if there is only one saved token.
-      $this->auth->logInViaMachineToken(['email' => $only_token['email']]);
+      $this->log()->info(
+        'Found a machine token for "{email}".',
+        ['email' => $only_token['email'],]
+      );
+      $auth->logInViaMachineToken($only_token);
+      $this->log()->info('Logging in via machine token');
     } else if (isset($email) && isset($assoc_args['password'])) {
       $password = $assoc_args['password'];
-      $this->auth->logInViaUsernameAndPassword(
+      $auth->logInViaUsernameAndPassword(
         $email,
         $assoc_args['password']
       );
     } else {
-      $this->log()->info(
+      $this->failure(
         "Please visit the Dashboard to generate a machine token:\n{url}",
-        ['url' => $this->auth->getMachineTokenCreationUrl()]
+        ['url' => $auth->getMachineTokenCreationUrl()]
       );
-      exit(1);
     }
+    if (!isset($email)) {
+      $user = Session::getUser();
+      $user->fetch();
+      $user_data = $user->serialize();
+      $email     = $user_data['email'];
+    }
+    $this->log()->info('Logged in as {email}.', compact('email'));
+
+    $this->log()->debug(print_r(get_defined_vars(), true));
+    //$this->helpers->launch->launchSelf(
+    //  ['command' => 'art', 'args' => ['fist']]
+    //);
   }
 
 }

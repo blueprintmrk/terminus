@@ -15,7 +15,7 @@ class TemplateHelper extends Helper {
   /**
    * @var string
    */
-  private $template_root = TERMINUS_ROOT . '/templates';
+  private $template_root = __DIR__ . '/../../templates';
 
   /**
    * @inheritdoc

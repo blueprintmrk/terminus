@@ -2,13 +2,13 @@
 
 namespace Terminus;
 
-use Terminus;
-use Terminus\Utils;
 use GuzzleHttp\Client;
-use GuzzleHttp\RequestOptions;
 use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\RequestOptions;
 use GuzzleHttp\Psr7\Request as HttpRequest;
+use Psr\Log\LoggerInterface;
 use Terminus\Exceptions\TerminusException;
+use Terminus\Utils;
 
 /**
  * Handles requests made by terminus
@@ -20,6 +20,11 @@ use Terminus\Exceptions\TerminusException;
  */
 
 class Request {
+
+  /**
+   * @var Logger
+   */
+  //private $logger;
 
   /**
    * A list of fields not to display values for in output
@@ -46,9 +51,9 @@ class Request {
 
     try {
       $client   = new Client();
-      $response = $client->request('GET', $url, array('sink' => $target));
+      $response = $client->request('GET', $url, ['sink' => $target,]);
     } catch (\Exception $e) {
-      throw new TerminusException($e->getMessage(), array(), 1);
+      throw new TerminusException($e->getMessage(), [], 1);
     }
     return true;
   }
@@ -64,14 +69,14 @@ class Request {
    *     JSON for you.
    * @return array
    */
-  public function pagedRequest($path, array $options = array()) {
+  public function pagedRequest($path, array $options = []) {
     $limit = 100;
     if (isset($options['limit'])) {
       $limit = $options['limit'];
     }
 
     //$results is an associative array so we don't refetch
-    $results  = array();
+    $results  = [];
     $finished = false;
     $start    = null;
 
@@ -81,7 +86,7 @@ class Request {
         $paged_path .= '&start=' . $start;
       }
 
-      $resp = $this->simpleRequest($paged_path);
+      $resp = $this->request($paged_path);
 
       $data = $resp['data'];
       if (count($data) > 0) {
@@ -102,68 +107,8 @@ class Request {
       }
     }
 
-    $return = array('data' => array_values($results));
+    $return = ['data' => array_values($results),];
     return $return;
-  }
-
-  /**
-   * Make a request to the Pantheon API
-   *
-   * @param string      $realm   Permissions realm for data request (e.g. user,
-   *   site organization, etc. Can also be "public" to simply pull read-only
-   *   data that is not privileged.
-   * @param string      $uuid    The UUID of the item in the realm to access
-   * @param string|bool $path    API path (URL)
-   * @param string      $method  HTTP method to use
-   * @param mixed       $options A native PHP data structure (e.g. int, string,
-   *   array, or stdClass) to be sent along with the request
-   * @return array
-   * @throws TerminusException
-   */
-  public function request(
-    $realm,
-    $uuid,
-    $path    = false,
-    $method  = 'GET',
-    $options = array()
-  ) {
-    $logger = Terminus::getLogger();
-    $url    = Endpoint::get(
-      array(
-        'realm' => $realm,
-        'uuid'  => $uuid,
-        'path'  => $path,
-      )
-    );
-
-    $logger->debug('Request URL: ' . $url);
-    try {
-      $response = $this->send($url, $method, $options);
-
-      $data = array(
-        'data'        => json_decode($response->getBody()->getContents()),
-        'headers'     => $response->getHeaders(),
-        'status_code' => $response->getStatusCode(),
-      );
-      return $data;
-    } catch (\GuzzleHttp\Exception\BadResponseException $e) {
-      $response = $e->getResponse();
-      throw new TerminusException($response->getBody(true));
-    } catch (\GuzzleHttp\Exception\RequestException $e) {
-      $sanitized_request = Utils\stripSensitiveData(
-        $e->getMessage(),
-        self::$blacklist
-      );
-      throw new TerminusException(
-        'API Request Error. {msg} - Request: {req}',
-        array('req' => $sanitized_request, 'msg' => $e->getMessage())
-      );
-    } catch (\Exception $e) {
-      throw new TerminusException(
-        'API Request Error: {msg}',
-        array('msg' => $e->getMessage())
-      );
-    }
   }
 
   /**
@@ -179,11 +124,11 @@ class Request {
    * @return array
    * @throws TerminusException
    */
-  public function simpleRequest($path, $arg_options = array()) {
-    $default_options = array(
+  public function request($path, $arg_options = []) {
+    $default_options = [
       'method'       => 'get',
       'absolute_url' => false,
-    );
+    ];
     $options = array_merge($default_options, $arg_options);
 
     $url = $path;
@@ -198,20 +143,20 @@ class Request {
     }
 
     try {
-      Terminus::getLogger()->debug('URL: {url}', compact('url'));
+      //$this->logger->debug('URL: {url}', compact('url'));
       $response = $this->send($url, $options['method'], $options);
     } catch (\GuzzleHttp\Exception\BadResponseException $e) {
       throw new TerminusException(
         'API Request Error: {msg}',
-        array('msg' => $e->getMessage())
+        ['msg' => $e->getMessage(),]
       );
     }
 
-    $data = array(
+    $data = [
       'data'        => json_decode($response->getBody()->getContents()),
       'headers'     => $response->getHeaders(),
       'status_code' => $response->getStatusCode(),
-    );
+    ];
     return $data;
   }
 
@@ -223,16 +168,18 @@ class Request {
    * @param array  $arg_params Request parameters
    * @return \Psr\Http\Message\ResponseInterface
    */
-  private function send($uri, $method, array $arg_params = array()) {
-    $extra_params = array(
-      'headers'         => array(
+  private function send($uri, $method, array $arg_params = []) {
+    $extra_params = [
+      'headers'         => [
         'User-Agent'    => $this->userAgent(),
         'Content-type'  => 'application/json',
-      ),
+      ],
       RequestOptions::VERIFY => (strpos(TERMINUS_HOST, 'onebox') === false),
-    );
+    ];
 
-    if ($session = Session::instance()->get('session', false)) {
+    if ((!isset($arg_params['absolute_url']) || !$arg_params['absolute_url'])
+      && $session = Session::instance()->get('session', false)
+    ) {
       $extra_params['headers']['Authorization'] = "Bearer $session";
     }
     $params = array_merge_recursive($extra_params, $arg_params);
@@ -243,21 +190,21 @@ class Request {
     $params[RequestOptions::VERIFY] = (strpos(TERMINUS_HOST, 'onebox') === false);
 
     $client = new Client(
-      array(
+      [
         'base_uri' => $this->getBaseUri(),
-        'cookies'  => $this->fillCookieJar($params)
-      )
+        'cookies'  => $this->fillCookieJar($params),
+      ]
     );
     unset($params['cookies']);
 
-    Terminus::getLogger()->debug(
+    /*$this->logger->debug(
       "#### REQUEST ####\nParams: {params}\nURI: {uri}\nMethod: {method}",
-      array(
+      [
         'params' => json_encode($params),
         'uri'    => $uri,
-        'method' => $method
-      )
-    );
+        'method' => $method,
+      ]
+    );*/
 
     //Required objects and arrays stir benign warnings.
     error_reporting(E_ALL ^ E_WARNING);
@@ -276,7 +223,7 @@ class Request {
    */
   private function fillCookieJar(array $params) {
     $jar     = new CookieJar();
-    $cookies = array();
+    $cookies = [];
     if (isset($params['cookies'])) {
       $cookies = array_merge($cookies, $params['cookies']);
     }
