@@ -9,10 +9,14 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Output\OutputInterface;
-use Terminus\FileLoader;
+use Terminus\Caches\FileCache;
 
 abstract class TerminusCommand extends Command {
 
+  /**
+   * @var FileCache
+   */
+  private $cache;
   /**
    * @var InputInterface
    */
@@ -26,12 +30,24 @@ abstract class TerminusCommand extends Command {
    */
   private $output;
 
+  /**
+   * @inheritdoc
+   */
+  public function __construct($name = null) {
+    $this->cache = new FileCache();
+    parent::__construct($name);
+  }
+
   public function log() {
     return $this->logger;
   }
 
   public function output() {
     return $this->output;
+  }
+
+  public function cache() {
+    return $this->cache;
   }
 
   protected function configure() {
