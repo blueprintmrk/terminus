@@ -25,8 +25,7 @@ class TemplateHelper extends Helper {
   }
 
   /**
-   * Renders the data using the :w
-   * given options.
+   * Renders the data using the given options.
    *
    * @param array $options Elements as follow:
    *  string template_name File name of the template to be used
