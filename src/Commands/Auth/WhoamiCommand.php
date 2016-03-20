@@ -27,7 +27,7 @@ class WhoamiCommand extends TerminusCommand {
       $formatted_block = $formatter->formatBlock($data, 'info');
       $this->output()->writeln($formatted_block);
     } else {
-      $this->output()->writeln('You are not logged in.');
+      $this->log()->info('You are not logged in.');
     }
   }
 
